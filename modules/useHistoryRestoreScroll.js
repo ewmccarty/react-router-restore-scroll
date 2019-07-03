@@ -1,141 +1,153 @@
-import { parsePath } from 'history/lib/PathUtils'
+'use strict';
 
-const setManualScroll = () => {
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _PathUtils = require('history').PathUtils;
+
+var setManualScroll = function setManualScroll() {
   if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
-    history.scrollRestoration = 'manual'
+    history.scrollRestoration = 'manual';
   }
-}
+};
 
-const createKey = () => (
-  Math.random().toString(36).substr(2, 6)
-)
+var createKey = function createKey() {
+  return Math.random().toString(36).substr(2, 6);
+};
 
-const addScrollKey = (locationOrString) => {
-  const location = typeof locationOrString === 'string' ?
-    parsePath(locationOrString) : locationOrString
-  if (!location.state)
-    location.state = {}
-  location.state.__scrollKey = createKey()
-  return location
-}
+var addScrollKey = function addScrollKey(locationOrString) {
+  var location = typeof locationOrString === 'string' ? (0, _PathUtils.parsePath)(locationOrString) : locationOrString;
+  if (!location.state) location.state = {};
+  location.state.__scrollKey = createKey();
+  return location;
+};
 
-const useHistoryRestoreScroll = (createHistory) => (
-  (options={}) => {
-    setManualScroll()
+var useHistoryRestoreScroll = function useHistoryRestoreScroll(createHistory) {
+  return function () {
+    var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
-    const scrollableNodes = {}
+    setManualScroll();
+
+    var scrollableNodes = {};
 
     // TODO: safer sessionStorage stuff
-    const positionsByLocation = (
-      sessionStorage.positionsByLocation && (
-        JSON.parse(sessionStorage.positionsByLocation)
-      )
-    ) || {}
+    var positionsByLocation = sessionStorage.positionsByLocation && JSON.parse(sessionStorage.positionsByLocation) || {};
 
-    const initialScrollKey = sessionStorage.initialScrollKey || createKey()
-    let currentScrollKey = sessionStorage.currentScrollKey || initialScrollKey
-    let first = true
+    var initialScrollKey = sessionStorage.initialScrollKey || createKey();
+    var currentScrollKey = sessionStorage.currentScrollKey || initialScrollKey;
+    var first = true;
 
-    window.addEventListener('beforeunload', () => {
-      saveScrollPositions()
-      sessionStorage.positionsByLocation = JSON.stringify(positionsByLocation)
-      sessionStorage.currentScrollKey = currentScrollKey
-      sessionStorage.initialScrollKey = initialScrollKey
-    })
+    window.addEventListener('beforeunload', function () {
+      saveScrollPositions();
+      sessionStorage.positionsByLocation = JSON.stringify(positionsByLocation);
+      sessionStorage.currentScrollKey = currentScrollKey;
+      sessionStorage.initialScrollKey = initialScrollKey;
+    });
 
-    const history = createHistory(options)
+    var history = createHistory(options);
 
-    const push = (locationWithoutKey) => {
-      const location = addScrollKey(locationWithoutKey)
-      history.push(location)
-    }
+    var push = function push(locationWithoutKey) {
+      var location = addScrollKey(locationWithoutKey);
+      history.push(location);
+    };
 
-    const replace = (locationWithoutKey) => {
-      const location = addScrollKey(locationWithoutKey)
-      history.replace(location)
-    }
+    var replace = function replace(locationWithoutKey) {
+      var location = addScrollKey(locationWithoutKey);
+      history.replace(location);
+    };
 
-    const registerScroller = (scrollKey, node) => {
-      scrollableNodes[scrollKey] = node
-      restoreNode(scrollKey)
-    }
+    var registerScroller = function registerScroller(scrollKey, node) {
+      scrollableNodes[scrollKey] = node;
+      restoreNode(scrollKey);
+    };
 
-    const unregisterScroller = (scrollKey) => {
-      delete scrollableNodes[scrollKey]
-    }
+    var unregisterScroller = function unregisterScroller(scrollKey) {
+      delete scrollableNodes[scrollKey];
+    };
 
-    const getScrollerPosition = (componentScrollKey) => {
-      const locationPositions = positionsByLocation[currentScrollKey]
-      return locationPositions ? locationPositions[componentScrollKey] || null : null
-    }
+    var getScrollerPosition = function getScrollerPosition(componentScrollKey) {
+      var locationPositions = positionsByLocation[currentScrollKey];
+      var position = locationPositions ? locationPositions[componentScrollKey] : null;
 
-    const saveScrollPositions = () => {
-      if (!positionsByLocation[currentScrollKey])
-        positionsByLocation[currentScrollKey] = {}
-      const { scrollY, scrollX } = window
-      savePosition('window', { scrollX, scrollY })
-      for (const scrollKey in scrollableNodes) {
-        const scrollerNode = scrollableNodes[scrollKey]
-        const { scrollTop, scrollLeft } = scrollerNode
-        savePosition(scrollKey, { scrollTop, scrollLeft })
+      return position && position.scrollX !== undefined && position.scrollY !== undefined ? position : null;
+    };
+
+    var saveScrollPositions = function saveScrollPositions() {
+      if (!positionsByLocation[currentScrollKey]) positionsByLocation[currentScrollKey] = {};
+      var _window = window,
+          scrollY = _window.scrollY,
+          scrollX = _window.scrollX;
+
+      savePosition('window', { scrollX: scrollX, scrollY: scrollY });
+      for (var scrollKey in scrollableNodes) {
+        var scrollerNode = scrollableNodes[scrollKey];
+        var scrollTop = scrollerNode.scrollTop,
+            scrollLeft = scrollerNode.scrollLeft;
+
+        savePosition(scrollKey, { scrollTop: scrollTop, scrollLeft: scrollLeft });
       }
-    }
+    };
 
-    const savePosition = (scrollKey, position) => {
-      positionsByLocation[currentScrollKey][scrollKey] = position
-    }
+    var savePosition = function savePosition(scrollKey, position) {
+      positionsByLocation[currentScrollKey][scrollKey] = position;
+    };
 
-    const restoreWindow = (location) => {
+    var restoreWindow = function restoreWindow(location) {
       if (location.action === 'PUSH' || location.action === 'REPLACE') {
-        window.scrollTo(0, 0)
+        window.scrollTo(0, 0);
       } else {
-        const position = getScrollerPosition('window')
+        var position = getScrollerPosition('window');
         if (position) {
-          const { scrollX, scrollY } = position
-          window.scrollTo(scrollX, scrollY)
+          var scrollX = position.scrollX,
+              scrollY = position.scrollY;
+
+          window.scrollTo(scrollX, scrollY);
         }
       }
-    }
+    };
 
-    const restoreNode = (scrollKey) => {
-      const position = getScrollerPosition(scrollKey)
+    var restoreNode = function restoreNode(scrollKey) {
+      var position = getScrollerPosition(scrollKey);
       if (position) {
-        const node = scrollableNodes[scrollKey]
-        const { scrollTop, scrollLeft } = position
-        node.scrollTop = scrollTop
-        node.scrollLeft = scrollLeft
-      }
-    }
+        var node = scrollableNodes[scrollKey];
+        var scrollTop = position.scrollTop,
+            scrollLeft = position.scrollLeft;
 
-    const unlisten = history.listen((location) => {
+        node.scrollTop = scrollTop;
+        node.scrollLeft = scrollLeft;
+      }
+    };
+
+    var unlisten = history.listen(function (location) {
       if (first) {
-        first = false
+        first = false;
       } else {
-        saveScrollPositions()
+        saveScrollPositions();
       }
-      currentScrollKey = (
-        location.state && location.state.__scrollKey
-      ) || initialScrollKey
-    })
+      currentScrollKey = location.state && location.state.__scrollKey || initialScrollKey;
+    });
 
-    const listen = (...args) => {
-      const internalUnlisten = history.listen(...args)
-      return () => unlisten() && internalUnlisten()
-    }
+    var listen = function listen() {
+      var internalUnlisten = history.listen.apply(history, arguments);
+      return function () {
+        return unlisten() && internalUnlisten();
+      };
+    };
 
-    return {
-      ...history,
-      listen,
-      push,
-      replace,
+    return _extends({}, history, {
+      listen: listen,
+      push: push,
+      replace: replace,
       restoreScroll: {
-        registerScroller,
-        unregisterScroller,
-        restoreWindow
+        registerScroller: registerScroller,
+        unregisterScroller: unregisterScroller,
+        restoreWindow: restoreWindow
       }
-    }
-  }
-)
+    });
+  };
+};
 
-export default useHistoryRestoreScroll
-
+exports.default = useHistoryRestoreScroll;
